@@ -1,9 +1,10 @@
 import spotipy
+import sys
 from credentials import client_id, client_secret, redirect_uri
 from spotipy.oauth2 import SpotifyOAuth
 
 # This function gives the percentages of each artist in a playlist or list of playlists, by number of songs and lengths
-# PARAM: playlistList: the list of playlists to analyse
+# PARAM: playlistList: the list of playlists to analyse, a list of playlist IDs
 def analysePlaylistArtists(playlistList):
 	scope = ""
 	sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, scope=scope))
@@ -46,15 +47,43 @@ def analysePlaylistArtists(playlistList):
 		print((str(idx) + ". ").ljust(5, " ") + artist[0].ljust(50, "-") + " " +  str(round((artist[1]/songCount)*100, 3)) + "\t" + (str(idx) + ". ").ljust(5, " ") + artistSongLengths[idx][0].ljust(50, "-") + " " + str(round((artistSongLengths[idx][1]/totalLength)*100, 3)))
 
 # Moves the currently playing song from a preset "trial" playlist to a preset "main" playlist.
-def main():
-	main_playlist_id = '4Wpg7A4AldVO2o5LoU1P8f'
-	trial_playlist_id = '3LQNydHP8YdfakWeCZt3J4'
-	scope = "playlist-modify-public user-read-playback-state"
+def commitSong(main_playlist_id, trial_playlist_id):
+	scope = "playlist-modify-public playlist-modify-private user-read-playback-state"
 	sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, scope=scope))
 	currentSong = sp.current_playback()
-	sp.playlist_remove_all_occurrences_of_items(trial_playlist_id, [currentSong['item']['uri']])
-	sp.playlist_remove_all_occurrences_of_items(main_playlist_id, [currentSong['item']['uri']])
-	sp.playlist_add_items(main_playlist_id, [currentSong['item']['uri']])
+	if currentSong is not None:
+		sp.playlist_remove_all_occurrences_of_items(trial_playlist_id, [currentSong['item']['uri']])
+		sp.playlist_remove_all_occurrences_of_items(main_playlist_id, [currentSong['item']['uri']])
+		sp.playlist_add_items(main_playlist_id, [currentSong['item']['uri']])
+
+# Remove the currently playing song from the current playlist
+def removeSong():
+	scope = "playlist-modify-public playlist-modify-private user-read-playback-state"
+	sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, scope=scope))
+	currentSong = sp.current_playback()
+	if currentSong is not None:
+		sp.playlist_remove_all_occurrences_of_items(currentSong['context']['uri'], [currentSong['item']['uri']])
+
+# Add the currently playing song to a specified playlist
+def addSong(playlistUri):
+	scope = "playlist-modify-public playlist-modify-private user-read-playback-state"
+	sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, scope=scope))
+	currentSong = sp.current_playback()
+	if currentSong is not None:
+		sp.playlist_add_items(playlistUri, [currentSong['item']['uri']])
+
+# arguments are assumed to be well formed, the program giving an error is hardly worse than giving an error that I wrote
+def main(args):
+	if len(args) == 0:
+		commitSong('4Wpg7A4AldVO2o5LoU1P8f', '3LQNydHP8YdfakWeCZt3J4')
+	elif args[0] == 'commit':
+		commitSong(args[1], args[2])
+	elif args[0] == 'delete':
+		removeSong()
+	elif args[0] == 'add':
+		addSong(playlist)
+	elif args[0] == 'analyse':
+		analysePlaylistArtists(args[1::])
 
 if __name__ == '__main__':
-	main()
+	main(sys.argv[1::])
