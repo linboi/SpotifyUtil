@@ -81,7 +81,7 @@ def main(args):
 	elif args[0] == 'delete':
 		removeSong()
 	elif args[0] == 'add':
-		addSong(playlist)
+		addSong(args[1])
 	elif args[0] == 'analyse':
 		analysePlaylistArtists(args[1::])
 
